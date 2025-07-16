@@ -7,3 +7,4 @@ venv/
 versions.json
 *.exe
 __pycache__/
+/.venv

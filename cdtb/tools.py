@@ -1,5 +1,6 @@
 import glob
 import os
+import io
 import re
 import shutil
 import struct
@@ -55,7 +56,7 @@ def write_dir_or_remove(path):
 class BinaryParser:
     """Helper class to read from binary file object"""
 
-    def __init__(self, f):
+    def __init__(self, f: io.BufferedReader):
         self.f = f
 
     def tell(self):

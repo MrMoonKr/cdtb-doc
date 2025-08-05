@@ -520,4 +520,6 @@ def main(argv = None):
 
 
 if __name__ == "__main__":
+    print( "Command Arguments : ", sys.argv )
+    print( "Command Arguments : ", *sys.argv )
     main()

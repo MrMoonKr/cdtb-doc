@@ -2,7 +2,6 @@
 venv/
 .idea/
 .env
-.vscode/
 .pytest_cache/
 versions.json
 *.exe

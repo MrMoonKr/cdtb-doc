@@ -1,3 +1,17 @@
+# 공지사항
+WIP ( Work in Progress )  
+
+파이썬 직무 교육( OJT, On the job Training )을 위한 소스 클론입니다.  
+
+- 변수  
+- 연산자  
+- 제어문  
+- 함수  
+- 클래스  
+- 모듈 및 패키지
+- 디버깅  
+
+
 # CommunityDragon Toolbox
 
 A toolbox to work with League of Legends game files and export files for CDragon.

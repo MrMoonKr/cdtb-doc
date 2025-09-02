@@ -88,7 +88,7 @@ def command_versions(parser, args):
             print(patch.version)
 
 
-def command_fetch_hashes(parser, args):
+def command_fetch_hashes( parser, args ):
     if default_hash_dir == Path(__file__).parent:
         if os.name == 'nt':
             user_dir = Path(os.environ.get('LOCALAPPDATA', 'LOCALAPPDATA'))
@@ -114,19 +114,19 @@ def command_fetch_hashes(parser, args):
         update_default_hashfile(basename)
 
 
-def command_wad_extract(parser, args):
-    if not os.path.isfile(args.wad):
-        parser.error("WAD file does not exist")
+def command_wad_extract( parser, args ):
+    if not os.path.isfile( args.wad ):
+        parser.error( "WAD file does not exist" )
     if not args.output:
-        args.output = os.path.splitext(args.wad)[0]
-    if os.path.exists(args.output) and not os.path.isdir(args.output):
+        args.output = os.path.splitext( args.wad )[0]
+    if os.path.exists( args.output ) and not os.path.isdir( args.output ):
         parser.error("output is not a directory")
 
     if args.hashes is None:
-        hashfile = default_hashfile(args.wad)
+        hashfile = default_hashfile( args.wad )
     else:
-        hashfile = HashFile(args.hashes)
-    wad = Wad(args.wad, hashes=hashfile.load())
+        hashfile = HashFile( args.hashes )
+    wad = Wad( args.wad, hashes=hashfile.load() )
     if args.unknown == 'yes':
         pass  # don't filter
     elif args.unknown == 'only':
@@ -138,25 +138,26 @@ def command_wad_extract(parser, args):
         wad.files = [wf for wf in wad.files if any(wf.path is not None and fnmatch.fnmatchcase(wf.path, p) for p in args.pattern)]
 
     wad.guess_extensions()
-    wad.extract(args.output, overwrite=not args.lazy)
+    wad.extract( args.output, overwrite=not args.lazy )
 
 
-def command_wad_list(parser, args):
-    if not os.path.isfile(args.wad):
-        parser.error("WAD file does not exist")
+def command_wad_list( parser, args ):
+    if not os.path.isfile( args.wad ):
+        parser.error( "WAD file does not exist" )
 
     if args.hashes is None:
-        hashfile = default_hashfile(args.wad)
+        hashfile = default_hashfile( args.wad )
     else:
-        hashfile = HashFile(args.hashes)
-    wad = Wad(args.wad, hashes=hashfile.load())
+        hashfile = HashFile( args.hashes )
+        
+    wad = Wad( args.wad, hashes=hashfile.load() )
 
     wadfiles = [(wf.path or ('?.%s' % wf.ext if wf.ext else '?'), wf.path_hash) for wf in wad.files]
     for path, h in sorted(wadfiles):
         print(f"{h:016x} {path}")
 
 
-def command_hashes_guess(parser, args):
+def command_hashes_guess( parser, args ):
     all_methods = [
         ("grep", "search for hashes in WAD files"),
         ("numbers", "substitute numbers in basenames"),
@@ -330,7 +331,7 @@ def command_bin_dump(parser, args):
         binfile.dump(sys.stdout)
 
 
-def create_parser():
+def create_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser('cdtb',
         description="Toolbox to work with League of Legends game and client files",
         formatter_class=argparse.RawDescriptionHelpFormatter,

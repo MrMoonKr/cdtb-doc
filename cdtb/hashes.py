@@ -22,62 +22,69 @@ logger = logging.getLogger(__name__)
 
 def _default_hash_dir():
     """
-    Hash directory is search for in this order
+        Hash directory is search for in this order.  
 
-    - `$CDTB_HASHES_DIR` if set
-    - `$CDRAGON_DATA/hashes/lol` if `$CDRAGON_DATA` is set
-    - If one of the following "data" directory exists, use `<dir>/hashes/lol`
-      - `$XDG_DATA_HOME/cdragon`
-      - `$LOCALAPPDATA/cdragon`
-      - `~/.local/share/cdragon` (see `Path.home()` for `~`)
+        - `$CDTB_HASHES_DIR` if set
+        - `$CDRAGON_DATA/hashes/lol` if `$CDRAGON_DATA` is set
+        - If one of the following "data" directory exists, use `<dir>/hashes/lol`
+        - `$XDG_DATA_HOME/cdragon`
+        - `$LOCALAPPDATA/cdragon`
+        - `~/.local/share/cdragon` (see `Path.home()` for `~`)
 
-    """
-    def _env_dir(name):
-        value = os.environ.get(name)
-        return Path(value) if value else None
-    if path := _env_dir('CDTB_HASHES_DIR'):
+        """
+    def _env_dir( name ):
+        value = os.environ.get( name )
+        return Path( value ) if value else None
+    if path := _env_dir( 'CDTB_HASHES_DIR' ):
         return path
-    if path := _env_dir('CDRAGON_DATA'):
+    if path := _env_dir( 'CDRAGON_DATA' ):
         return path / 'hashes/lol'
 
     # Always search in XDG_DATA_HOME, even on Windows
-    path = _env_dir('XDG_DATA_HOME')
+    path = _env_dir( 'XDG_DATA_HOME' )
     if not path or not path.is_absolute():
         # Assume LOCALAPPDATA is not set when not on Windows
-        path = _env_dir('LOCALAPPDATA') or Path.home() / ".local/share"
+        path = _env_dir( 'LOCALAPPDATA' ) or Path.home() / ".local/share"
     return path / 'cdragon/data/hashes/lol'
 
 default_hash_dir = _default_hash_dir()
+'''hashes.xxx.txt 파일 저장 디렉토리'''
 
 
 class HashFile:
-    """Store hashes, support save/load and caching"""
+    """
+        Store hashes, support save/load and caching
+        """
 
-    def __init__(self, filename, hash_size=16):
-        self.filename = filename
-        self.line_format = f"{{:0{hash_size}x}} {{}}"
-        self.hashes = None
+    def __init__( self, filename, hash_size=16 ):
+        self.filename       = filename
+        self.line_format    = f"{{:0{hash_size}x}} {{}}"
+        self.hashes         = None
 
-    def load(self, force=False) -> Dict[int, str]:
+    def load( self, force=False ) -> Dict[int, str]:
         if force or self.hashes is None:
             try:
-                with open(self.filename) as f:
-                    hashes = (l.split(' ', 1) for l in f)
-                    self.hashes = {int(h, 16): s.rstrip('\n') for h, s in hashes}
+                with open( self.filename ) as f:
+                    hashes = ( l.split( ' ', 1 ) for l in f )
+                    self.hashes = { int( h, 16 ): s.rstrip('\n') for h, s in hashes }
             except FileNotFoundError:
-                raise FileNotFoundError(f"Hash file not found; try to run 'fetch-hashes' command: {self.filename}")
+                raise FileNotFoundError( f"Hash file not found; try to run 'fetch-hashes' command: {self.filename}" )
         return self.hashes
 
-    def save(self):
-        with open(self.filename, 'w', newline='') as f:
-            for h, s in sorted(self.hashes.items(), key=lambda kv: kv[1]):
-                print(self.line_format.format(h, s), file=f)
+    def save( self ):
+        with open( self.filename, 'w', newline='' ) as f:
+            for h, s in sorted( self.hashes.items(), key=lambda kv: kv[1] ):
+                print( self.line_format.format( h, s ), file=f )
 
-hashfile_lcu = HashFile(default_hash_dir / "hashes.lcu.txt")
-hashfile_game = HashFile(default_hash_dir / "hashes.game.txt")
+hashfile_lcu  = HashFile( default_hash_dir / "hashes.lcu.txt" ) 
+'''global dict with "hashes.lcu.txt"'''
+hashfile_game = HashFile( default_hash_dir / "hashes.game.txt" )
+'''global dict with "hashes.game.txt"'''
 
-def default_hashfile(path):
-    """Return the default hashfile for the given WAD file"""
+def default_hashfile(path: str):
+    """
+        Return the default hashfile for the given WAD file
+        """
     if path.endswith(".wad.client"):
         return hashfile_game
     elif path.endswith(".wad"):
@@ -85,29 +92,32 @@ def default_hashfile(path):
     else:
         raise ValueError(f"no default hashes for WAD file '{path}'")
 
-def update_default_hashfile(basename):
-    """Update a hashfile if a new version is available for download"""
+def update_default_hashfile( basename: str ):
+    """
+        Update a hashfile if a new version is available for download
+        (ex) hashes.game.txt <- https://raw.communitydragon.org/data/hashes/lol/hashes.game.txt
+        """
 
-    path = default_hash_dir / basename
-    url = f"https://raw.communitydragon.org/data/hashes/lol/{basename}"
+    path: Path = default_hash_dir / basename
+    url: str = f"https://raw.communitydragon.org/data/hashes/lol/{basename}"
 
     try:
         last_time = path.stat().st_mtime
         # CloudFlare does not support 'if-modified-since'
         # We have to send a separate HEAD
-        r = requests.head(url)
-        r.raise_for_status()
-        last_modified = datetime.datetime.strptime(r.headers['last-modified'], '%a, %d %b %Y %H:%M:%S GMT').replace(tzinfo=datetime.timezone.utc)
+        req = requests.head( url )
+        req.raise_for_status()
+        last_modified = datetime.datetime.strptime( req.headers['last-modified'], '%a, %d %b %Y %H:%M:%S GMT').replace( tzinfo=datetime.timezone.utc )
         if last_time >= last_modified.timestamp():
             return  # up to date
     except FileNotFoundError:
         pass  # Never downloaded
 
-    logger.debug(f"update hash file from {url}")
-    r = requests.get(url)
-    r.raise_for_status()
-    with write_file_or_remove(path) as f:
-        f.write(r.content)
+    logger.debug( f"update hash file from {url}" )
+    req = requests.get( url )
+    req.raise_for_status()
+    with write_file_or_remove( path ) as f:
+        f.write( req.content )
 
 
 def build_wordlist(paths):
@@ -171,24 +181,24 @@ def progress_iterator(sequence, formatter=None):
 
 class HashGuesser:
     """
-    Guess hashes from files
-    """
+        Guess hashes from files
+        """
 
-    def __init__(self, hashfile, hashes):
+    def __init__( self, hashfile, hashes ):
         self.hashfile = hashfile
-        if not isinstance(hashes, set):
-            hashes = set(hashes)
+        if not isinstance( hashes, set ):
+            hashes = set( hashes )
 
         self.known = self.hashfile.load()
-        self.unknown = hashes - set(self.known)
+        self.unknown = hashes - set( self.known )
         self.wads = None
         self.__directory_list = None  # cache
 
     @classmethod
-    def from_wads(cls, wads):
+    def from_wads( cls, wads ):
         """Create a guesser from wads"""
-        hashes = set(wf.path_hash for wad in wads for wf in wad.files)
-        self = cls(hashes)
+        hashes = set( wf.path_hash for wad in wads for wf in wad.files )
+        self = cls( hashes )
         self.wads = wads
         return self
 
@@ -366,7 +376,7 @@ class HashGuesser:
                     yield wadfile, data
 
 
-class LcuHashGuesser(HashGuesser):
+class LcuHashGuesser( HashGuesser ):
     def __init__(self, hashes):
         super().__init__(hashfile_lcu, hashes)
 
@@ -566,8 +576,11 @@ class LcuHashGuesser(HashGuesser):
         #  plugins/rcp-fe-lol-skins-viewer/global/default/video/collection/{i}.webm
 
 
-class GameHashGuesser(HashGuesser):
-    def __init__(self, hashes):
+class GameHashGuesser( HashGuesser ):
+    '''
+        hash guesser for xxx.wad.client
+        '''
+    def __init__( self, hashes ):
         super().__init__(hashfile_game, hashes)
 
     @classmethod

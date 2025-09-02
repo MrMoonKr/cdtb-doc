@@ -67,43 +67,43 @@ class WadFileHeader:
         (b'TEX\0', 'tex'),
     }
 
-    def __init__(self, path_hash, offset, compressed_size, size, type, duplicate=None, first_subchunk_index=None, sha256=None):
-        self.path_hash = path_hash
-        self.offset = offset
-        self.size = size
-        self.subchunk_count = (type & 0xF0) >> 4
-        self.type = type & 0xF
-        self.compressed_size = compressed_size
-        self.duplicate = bool(duplicate)
+    def __init__( self, path_hash, offset, compressed_size, size, type, duplicate=None, first_subchunk_index=None, sha256=None ):
+        self.path_hash          = path_hash
+        self.offset             = offset
+        self.size               = size
+        self.subchunk_count     = (type & 0xF0) >> 4
+        self.type               = type & 0xF
+        self.compressed_size    = compressed_size
+        self.duplicate          = bool(duplicate)
         self.first_subchunk_index = first_subchunk_index
-        self.sha256 = sha256
+        self.sha256             = sha256
         # values that can be guessed
-        self.path = None
-        self.ext = None
+        self.path               = None
+        self.ext                = None
 
-    def read_data(self, f, subchunk_toc=None):
+    def read_data( self, f, subchunk_toc=None ):
         """Retrieve (uncompressed) data from WAD file object"""
 
-        f.seek(self.offset)
+        f.seek( self.offset )
         # assume files are small enough to fit in memory
-        data = f.read(self.compressed_size)
+        data = f.read( self.compressed_size )
         if self.type == 0:
             return data
         elif self.type == 1:
-            return gzip.decompress(data)
+            return gzip.decompress( data )
         elif self.type == 2:
-            n, = struct.unpack('<L', data[:4])
+            n, = struct.unpack( '<L', data[:4] )
             target = data[4:4+n].rstrip(b'\0').decode('utf-8')
             logger.debug(f"file redirection: {target}")
             return None
         elif self.type == 3:
-            return zstd_decompress(data)
+            return zstd_decompress( data )
         elif self.type == 4:
             # Data is split into individual subchunks that may be zstd compressed
             if subchunk_toc is not None:
                 chunks_data = []
                 offset = 0
-                for index in range(self.first_subchunk_index, self.first_subchunk_index + self.subchunk_count):
+                for index in range( self.first_subchunk_index, self.first_subchunk_index + self.subchunk_count ):
                     compressed_size, uncompressed_size, subchunk_hash = struct.unpack('<IIQ', subchunk_toc[16*index:16*(index+1)])
                     # ensure wad data matches with the subchunktoc data
                     subchunk_data = data[offset:offset+compressed_size]
@@ -111,28 +111,30 @@ class WadFileHeader:
                         raise MalformedSubchunkError(data)
                     if compressed_size == uncompressed_size:
                         # assume data is uncompressed
-                        chunks_data.append(subchunk_data)
+                        chunks_data.append( subchunk_data )
                     else:
-                        chunks_data.append(zstd_decompress(subchunk_data))
+                        chunks_data.append( zstd_decompress( subchunk_data ) )
                     offset += compressed_size
                 return b"".join(chunks_data)
             else:
                 # No subchunk TOC, try to decompress
                 try:
-                    return zstd_decompress(data)
+                    return zstd_decompress( data )
                 except Exception:
-                    raise MalformedSubchunkError(data)
-        raise ValueError(f"unsupported file type: {self.type}")
+                    raise MalformedSubchunkError( data )
+        
+        raise ValueError( f"unsupported file type: {self.type}" )
 
-    def extract(self, fwad, output_path, subchunk_toc=None):
-        """Read data, convert it if needed, and write it to a file
-
-        On error, partially retrieved files are removed.
-        File redirections are skipped.
+    def extract( self, fwad, output_path, subchunk_toc=None ):
         """
+            Read data, convert it if needed, and write it to a file.  
+
+            On error, partially retrieved files are removed.
+            File redirections are skipped.
+            """
 
         try:
-            data = self.read_data(fwad, subchunk_toc)
+            data = self.read_data( fwad, subchunk_toc)
         except MalformedSubchunkError:
             logger.warning(f"failed to read subchunked wad entry {self.path}")
             return
@@ -173,16 +175,17 @@ class WadFileHeader:
 
 
 class Wad:
-    """A WAD archive is a file that contains other files.
-
-    It has a header that describes the format. There are multiple
-    formats that Riot uses depending on the version of the WAD file, which can be read from the header.
-    The files contained in a WAD file generally are all related to one "idea".
-
-    This class has one major purpose: to extract the individual files in a specific WAD archive for further analysis.
     """
+        A WAD archive is a file that contains other files.  
 
-    def __init__(self, path, hashes=None):
+        It has a header that describes the format. There are multiple  
+        formats that Riot uses depending on the version of the WAD file, which can be read from the header.  
+        The files contained in a WAD file generally are all related to one "idea".  
+
+        This class has one major purpose: to extract the individual files in a specific WAD archive for further analysis.  
+        """
+
+    def __init__( self, path, hashes=None ):
         self.path = path
         self.version = None
         self.files = None
@@ -190,11 +193,11 @@ class Wad:
         self.resolve_paths(hashes)
         self.load_subchunk_toc()
 
-    def parse_headers(self):
+    def parse_headers( self ):
         """Parse version and file list"""
 
         logger.debug(f"parse headers of {self.path}")
-        with open(self.path, 'rb') as f:
+        with open( self.path, 'rb' ) as f:
             parser = BinaryParser(f)
             magic, version_major, version_minor = parser.unpack("<2sBB")
             if magic != b'RW':
@@ -262,10 +265,10 @@ class Wad:
         with open(self.path, 'rb') as f:
             for wadfile in self.files:
                 if not wadfile.ext:
-                    data = self.read_file_data(f, wadfile)
+                    data = self.read_file_data( f, wadfile )
                     if not data:
                         continue
-                    wadfile.ext = WadFileHeader.guess_extension(data)
+                    wadfile.ext = WadFileHeader.guess_extension( data )
                     _hash_to_guessed_extensions[wadfile.path_hash] = wadfile.ext
 
     def set_unknown_paths(self, path):
@@ -278,7 +281,7 @@ class Wad:
                 else:
                     wadfile.path = f"{path}/{wadfile.path_hash:016x}"
 
-    def sanitize_paths(self):
+    def sanitize_paths( self ):
         """Sanitize paths for extract purposes; for example truncating files whose basename has a length of at least 250"""
 
         for wadfile in self.files:
@@ -296,32 +299,33 @@ class Wad:
 
                     wadfile.path += ext
 
-                path, filename = os.path.split(wadfile.path)
+                path, filename = os.path.split( wadfile.path )
                 if len(filename) >= 250:
                     wadfile.path = os.path.join(path, f"{filename[:250-17-len(ext)]}.{wadfile.path_hash:016x}{ext}")
 
-    def extract(self, output, overwrite=True):
-        """Extract WAD file
-
-        If overwrite is False, don't extract files that already exist on disk.
+    def extract( self, output, overwrite=True ):
         """
+            Extract WAD file.  
+
+            If overwrite is False, don't extract files that already exist on disk.
+            """
 
         logger.info(f"extracting {self.path} to {output}")
 
         self.sanitize_paths()
         self.set_unknown_paths("unknown")
 
-        with open(self.path, 'rb') as fwad:
+        with open( self.path, 'rb' ) as fwad:
             for wadfile in self.files:
-                output_path = os.path.join(output, wadfile.path)
+                output_path = os.path.join( output, wadfile.path )
 
-                if not overwrite and os.path.exists(output_path):
+                if not overwrite and os.path.exists( output_path ):
                     logger.debug(f"skipping {wadfile.path_hash:016x} {wadfile.path} (already extracted)")
                     continue
                 logger.debug(f"extracting {wadfile.path_hash:016x} {wadfile.path}")
-                wadfile.extract(fwad, output_path, self.subchunk_toc)
+                wadfile.extract( fwad, output_path, self.subchunk_toc )
 
-    def read_file_data(self, fwad, wadfile):
+    def read_file_data( self, fwad, wadfile: WadFileHeader ):
         """Retrieve (uncompressed) data from WAD file object
 
         Similar to `WadFileHeader.read_data()` but use wad's subchunk information if available.

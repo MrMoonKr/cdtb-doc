@@ -5,6 +5,27 @@
     "version": "0.2.0",
     "configurations": [
         {
+            "name": "[Degug] wad-list ",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${file}",
+            "console": "integratedTerminal",
+            "args": [
+                "wad-list",
+                "\\\\DESKTOP-GAMA3CK\\GameHDD\\myGames\\Riot Games\\League of Legends\\Game\\DATA\\FINAL\\Champions\\Aatrox.wad.client"
+            ]
+        },
+        {
+            "name": "[Degug] fetch-hashes ",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${file}",
+            "console": "integratedTerminal",
+            "args": [
+                "fetch-hashes"
+            ]
+        },
+        {
             "name": "[디버깅]",
             "type": "debugpy",
             "request": "launch",

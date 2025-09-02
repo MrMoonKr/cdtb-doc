@@ -15,10 +15,11 @@ logger = logging.getLogger(__name__)
 
 
 class BaseVersion:
-    """Base wrapper class for version strings
-
-    Version instances are comparable and hashable.
     """
+        Base wrapper class for version strings.  
+
+        Version instances are comparable and hashable.
+        """
 
     def __init__(self, v: Union[str, tuple]):
         if not v:
@@ -69,13 +70,14 @@ class BaseVersion:
 
 
 class PatchVersion(BaseVersion):
-    """Wrapper class for patch version numbers
-
-    Patch versions are X.Y, where X is the season and Y the patch number, starting at 1.
-    Mid-update patches (e.g. 8.23.2) are not handled.
-
-    For PBE, the special version `main` is used.
     """
+        Wrapper class for patch version numbers
+
+        Patch versions are X.Y, where X is the season and Y the patch number, starting at 1.
+        Mid-update patches (e.g. 8.23.2) are not handled.
+
+        For PBE, the special version `main` is used.
+        """
 
     def __init__(self, v: Union[str, tuple]):
         if isinstance(v, str) and v == "main":
@@ -455,7 +457,9 @@ def get_content_metadata_version(path) -> str:
 
 
 def parse_storage_component(storage: Storage, component: str) -> Union[None, Patch, PatchElement]:
-    """Parse a component string representation to patch elements"""
+    """
+        Parse a component string representation to patch elements.  
+        """
 
     m = re.match(fr'^(patch|{"|".join(PatchElement.names)})=(|[0-9]+(?:\.[0-9]+\.?)*|main)$', component)
     if not m:

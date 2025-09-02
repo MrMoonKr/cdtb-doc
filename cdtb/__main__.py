@@ -2,6 +2,7 @@
 import os
 import sys
 import argparse
+from argparse import ArgumentParser
 import textwrap
 import fnmatch
 import logging
@@ -29,8 +30,10 @@ from cdtb.hashes import (
 from cdtb.tools import json_dump
 
 
-def parse_component_arg(parser, storage: Storage, component: str):
-    """Wrapper around parse_storage_component() to parse CLI arguments into patch elements"""
+def parse_component_arg(parser: ArgumentParser, storage: Storage, component: str):
+    """
+        Wrapper around parse_storage_component() to parse CLI arguments into patch elements.  
+        """
     try:
         component = parse_storage_component(storage, component)
     except ValueError:
@@ -153,7 +156,7 @@ def command_wad_list( parser, args ):
     wad = Wad( args.wad, hashes=hashfile.load() )
 
     wadfiles = [(wf.path or ('?.%s' % wf.ext if wf.ext else '?'), wf.path_hash) for wf in wad.files]
-    for path, h in sorted(wadfiles):
+    for path, h in sorted( wadfiles ):
         print(f"{h:016x} {path}")
 
 
